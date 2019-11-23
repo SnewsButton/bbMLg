@@ -7,7 +7,6 @@ def hough(img,R,thresh):
 	edges = cv.Canny(gray,50,150,apertureSize = 3)
 
 	lines = cv.HoughLines(edges,1,np.pi/180,thresh)
-	print(lines.shape[0])
 	imgLines = np.copy(img)
 	for k in range(lines.shape[0]):
 	    rho = lines[k][0][0]
@@ -19,7 +18,7 @@ def hough(img,R,thresh):
 	    x2 = int(x0 - R*(-b))
 	    y2 = int(y0 - R*(a))
 	    imgLines = cv.line(imgLines,(x0,y0),(x2,y2),(0,0,255),2)
-	return imgLines
+	return lines
 
 def drawContour(img,contours,k):
     imgCon = np.copy(img)
@@ -38,8 +37,7 @@ def getContourCenter(contour):
     if mu['m00']!=0:
         c = (mu['m10']/mu['m00'], mu['m01']/mu['m00']) 
     else:
-        c = (0,0)
-    
+        c = (0,0)    
 
 def getContourCirc(contour):
     P = cv.arcLength(contour,True);
@@ -49,34 +47,77 @@ def getContourCirc(contour):
     return 4*math.pi*A/(P*P)
 
 def getBoundingBox(contour):
-    return (min(contour[:,0,0]),max(contour[:,0,0]),min(contour[:,0,1]),max(contour[:,0,1]))
+    top = int(min(contour[:,0,0])-(max(contour[:,0,0])-min(contour[:,0,0]))*0.2)
+    return (top,max(contour[:,0,0]),min(contour[:,0,1]),max(contour[:,0,1]))
 
-def getBlobs(img,show):
+def getBlobs(img,step,show,a,b):
     imgsmall = img
     while imgsmall.shape[0]*imgsmall.shape[1]>1000000:
         imgsmall = cv.resize(imgsmall,(0,0),fx=.5,fy=.5)
     imgHSV = cv.cvtColor(imgsmall,cv.COLOR_BGR2HSV)
+    imgHue = imgHSV[:,:,0]
     imgSat = imgHSV[:,:,1]
-    ret1,imgBW = cv.threshold(imgSat,127,255,cv.THRESH_BINARY) #Can adjust second value
-    strel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (7, 7)) #Can adjust morph size
-    imgBWM = cv.morphologyEx(imgBW, cv.MORPH_CLOSE, strel)
-    if show:
-        cv.imshow('Image',imgBWM) ################
-    contours0, hierarchy0 = cv.findContours(imgBW, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
-    contours, hierarchy = cv.findContours(imgBWM, cv.RETR_CCOMP, cv.CHAIN_APPROX_NONE)
+    imgLit = (imgHSV[:,:,2]*(1-imgSat/511)).astype(np.uint8)
     blobImgs = []
     hues = []
-    for k in range(len(contours)):
-        if len(contours[k])>20 and hierarchy[0][k][3]<0 and 0.75 < getContourCirc(contours[k]) < 0.9: #Can adjust threshold
-            bbox = getBoundingBox(contours[k])
-            blobImg = imgsmall[bbox[2]:bbox[3],bbox[0]:bbox[1]]
-            blobHSV = cv.cvtColor(blobImg,cv.COLOR_BGR2HSV)
-            hues.append(np.mean(blobHSV[:,:,0]))
-            blobImgs.append(blobImg)            
-    blobs = np.array(blobImgs)
+    step = 30
+    imgCon = np.copy(imgsmall)
+    for minHue in [k for k in range(0,180,step)]:
+            if minHue==-2:
+                ret1,_ = cv.threshold(imgLit,55,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
+                _,imgWB = cv.threshold(imgLit,ret1*0.5,255,cv.THRESH_BINARY)
+                imgBW = 255-imgWB
+            elif minHue==-1:
+                ret1,_ = cv.threshold(imgLit,170,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
+                _,imgBW = cv.threshold(imgLit,ret1*1.6,255,cv.THRESH_BINARY)
+            else:
+                imgColor = imgSat*np.logical_and(imgHue>=minHue,imgHue<minHue+step)
+                ret1,_ = cv.threshold(imgColor,100,255,cv.THRESH_BINARY+cv.THRESH_OTSU) 
+                _,imgBW = cv.threshold(imgColor,ret1*a+b,255,cv.THRESH_BINARY)
+            strel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (9, 9)) #Can adjust morph size
+            imgBWM = cv.morphologyEx(imgBW, cv.MORPH_CLOSE, strel)
+            contours0, hierarchy0 = cv.findContours(imgBW, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
+            contours, hierarchy = cv.findContours(imgBWM, cv.RETR_CCOMP, cv.CHAIN_APPROX_NONE)
+            for k in range(len(contours)):
+                if cv.contourArea(contours[k])>600 and hierarchy[0][k][3]<0 and 0.69 < getContourCirc(contours[k]) < 0.9: #Can adjust threshold
+                    cv.drawContours(imgCon, contours, k, (255,0,0), 2);
+                    bbox = getBoundingBox(contours[k])
+                    blobImg = imgsmall[bbox[2]:bbox[3],bbox[0]:bbox[1]]
+                    blobHSV = cv.cvtColor(blobImg,cv.COLOR_BGR2HSV)
+                    if minHue<0:
+                        hues.append(minHue)
+                    else:
+                        hues.append(np.mean(blobHSV[:,:,0]))
+                    blobImgs.append(blobImg)
+    if show:
+        cv.imshow('Image',imgCon)
+    try:
+        blobs = np.array(blobImgs)
+    except ValueError:
+        return []
     return blobs[np.argsort(hues)]
-    
+
+def testLinearOtsu():
+    for a in range(50,80,2):
+        print('\t',a)
+        for b in range(50,80,2):
+            fail = False
+            for k in range(20):
+                img=cv.imread('C:\\Users\\joshm\\Documents\\bbMLg\\data1120a\\3d' + str(k) + '.png')
+                blobs = getBlobs(img,30,False,a/100,b)
+                if len(blobs)!=3:
+                    fail=True
+            img = cv.imread('C:\\Users\\joshm\\Documents\\bbMLg\\alldicephoto.jpg')
+            blobs = getBlobs(img,30,False,a/100,b)
+            if len(blobs)!=6:
+                fail=True
+            if not fail:
+                print(a/100,b)
+                
 for k in range(20):
     img=cv.imread('C:\\Users\\joshm\\Documents\\bbMLg\\data1120a\\3d' + str(k) + '.png')
-    blobs = getBlobs(img,False)
+    blobs = getBlobs(img,30,False,0.50,76) #Finely tuned parameters
     print(str(k)+'\t'+'\t'.join([str(blob.shape[0])+' '+str(blob.shape[1]) for blob in blobs]))
+
+    
+#lines = hough(img,1000,100)
