@@ -62,25 +62,26 @@ def getBlobs(img,step,show,a,b):
     hues = []
     step = 30
     imgCon = np.copy(imgsmall)
-    for minHue in [k for k in range(0,180,step)]:
+    strel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (9, 9)) #Can adjust morph size
+    for minHue in [-2,-1]+[k for k in range(0,180,step)]:
             if minHue==-2:
-                ret1,_ = cv.threshold(imgLit,55,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
-                _,imgWB = cv.threshold(imgLit,ret1*0.5,255,cv.THRESH_BINARY)
-                imgBW = 255-imgWB
+                imgLitM = cv.morphologyEx(255-imgLit, cv.MORPH_CLOSE, strel)
+                ret1,_ = cv.threshold(imgLitM,55,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
+                _,imgBWM = cv.threshold(imgLitM,ret1*1.29,255,cv.THRESH_BINARY)
             elif minHue==-1:
-                ret1,_ = cv.threshold(imgLit,170,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
-                _,imgBW = cv.threshold(imgLit,ret1*1.6,255,cv.THRESH_BINARY)
+                imgLitM = cv.morphologyEx(imgLit, cv.MORPH_CLOSE, strel)
+                ret1,_ = cv.threshold(imgLitM,170,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
+                _,imgBWM = cv.threshold(imgLitM,ret1*1.6,255,cv.THRESH_BINARY)
             else:
                 imgColor = imgSat*np.logical_and(imgHue>=minHue,imgHue<minHue+step)
-                ret1,_ = cv.threshold(imgColor,100,255,cv.THRESH_BINARY+cv.THRESH_OTSU) 
-                _,imgBW = cv.threshold(imgColor,ret1*a+b,255,cv.THRESH_BINARY)
-            strel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (9, 9)) #Can adjust morph size
-            imgBWM = cv.morphologyEx(imgBW, cv.MORPH_CLOSE, strel)
-            contours0, hierarchy0 = cv.findContours(imgBW, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
+                imgM = cv.morphologyEx(imgColor, cv.MORPH_CLOSE, strel)
+                ret1,_ = cv.threshold(imgM,100,255,cv.THRESH_BINARY+cv.THRESH_OTSU) 
+                _,imgBWM = cv.threshold(imgM,ret1*a+b,255,cv.THRESH_BINARY)  
+            #contours0, hierarchy0 = cv.findContours(imgBW, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
             contours, hierarchy = cv.findContours(imgBWM, cv.RETR_CCOMP, cv.CHAIN_APPROX_NONE)
             for k in range(len(contours)):
                 if cv.contourArea(contours[k])>600 and hierarchy[0][k][3]<0 and 0.69 < getContourCirc(contours[k]) < 0.9: #Can adjust threshold
-                    cv.drawContours(imgCon, contours, k, (255,0,0), 2);
+                    cv.drawContours(imgCon, contours, k, (255,0,0), 2)
                     bbox = getBoundingBox(contours[k])
                     blobImg = imgsmall[bbox[2]:bbox[3],bbox[0]:bbox[1]]
                     blobHSV = cv.cvtColor(blobImg,cv.COLOR_BGR2HSV)
@@ -114,10 +115,10 @@ def testLinearOtsu():
             if not fail:
                 print(a/100,b)
                 
-for k in range(20):
-    img=cv.imread('C:\\Users\\joshm\\Documents\\bbMLg\\data1120a\\3d' + str(k) + '.png')
-    blobs = getBlobs(img,30,False,0.50,76) #Finely tuned parameters
-    print(str(k)+'\t'+'\t'.join([str(blob.shape[0])+' '+str(blob.shape[1]) for blob in blobs]))
+#for k in range(20):
+#    img=cv.imread('C:\\Users\\joshm\\Documents\\bbMLg\\data1120a\\3d' + str(k) + '.png')
+#    blobs = getBlobs(img,30,False,0.50,76) #Finely tuned parameters
+#    print(str(k)+'\t'+'\t'.join([str(blob.shape[0])+' '+str(blob.shape[1]) for blob in blobs]))
 
     
 #lines = hough(img,1000,100)
