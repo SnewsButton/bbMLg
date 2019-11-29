@@ -102,9 +102,9 @@ def getBlobs(img,step,show,a,b):
 def resizeBlobs(blobs):
     blobsSq = []
     for blob in blobs:
-        f = 50/max(blob.shape[:2])
+        f = min(50/blob.shape[0],60/blob.shape[1])
         blobRs = cv.resize(blob,(0,0),fx=f,fy=f)
-        pads = ((50-blobRs.shape[0])/2,(50-blobRs.shape[1])/2)
+        pads = ((50-blobRs.shape[0])/2,(60-blobRs.shape[1])/2)
         pad0 = (math.floor(pads[0]),math.ceil(pads[0]))
         pad1 = (math.floor(pads[1]),math.ceil(pads[1]))
         blobSq = np.pad(blobRs,(pad0,pad1,(0,0)),'edge')
@@ -114,7 +114,7 @@ def resizeBlobs(blobs):
 def montage(blobs):
     res = np.zeros((50,5,3)).astype(np.uint8)
     for blob in blobs:
-        if blob.shape!=(50,50,3):
+        if blob.shape!=(50,60,3):
             return
         res = np.concatenate((res,blob,np.zeros((50,5,3)).astype(np.uint8)),axis=1)
     cv.imshow('Image',res)
