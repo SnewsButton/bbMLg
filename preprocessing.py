@@ -96,7 +96,28 @@ def getBlobs(img,step,show,a,b):
         blobs = np.array(blobImgs)
     except ValueError:
         return []
-    return blobs[np.argsort(hues)]
+    blobs = blobs[np.argsort(hues)]
+    return resizeBlobs(blobs)
+
+def resizeBlobs(blobs):
+    blobsSq = []
+    for blob in blobs:
+        f = 50/max(blob.shape[:2])
+        blobRs = cv.resize(blob,(0,0),fx=f,fy=f)
+        pads = ((50-blobRs.shape[0])/2,(50-blobRs.shape[1])/2)
+        pad0 = (math.floor(pads[0]),math.ceil(pads[0]))
+        pad1 = (math.floor(pads[1]),math.ceil(pads[1]))
+        blobSq = np.pad(blobRs,(pad0,pad1,(0,0)),'edge')
+        blobsSq.append(blobSq)
+    return blobsSq
+
+def montage(blobs):
+    res = np.zeros((50,5,3)).astype(np.uint8)
+    for blob in blobs:
+        if blob.shape!=(50,50,3):
+            return
+        res = np.concatenate((res,blob,np.zeros((50,5,3)).astype(np.uint8)),axis=1)
+    cv.imshow('Image',res)
 
 def testLinearOtsu():
     for a in range(50,80,2):
