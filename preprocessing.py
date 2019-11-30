@@ -47,10 +47,10 @@ def getContourCirc(contour):
     return 4*math.pi*A/(P*P)
 
 def getBoundingBox(contour):
-    top = int(min(contour[:,0,0])-(max(contour[:,0,0])-min(contour[:,0,0]))*0.2)
-    return (top,max(contour[:,0,0]),min(contour[:,0,1]),max(contour[:,0,1]))
+    top = int(min(contour[:,0,1])-(max(contour[:,0,1])-min(contour[:,0,1]))*0.2)
+    return (int(min(contour[:,0,0])),max(contour[:,0,0]),top,max(contour[:,0,1]))
 
-def getBlobs(img,step,show,a,b):
+def getBlobs(img,params,show):
     imgsmall = img
     while imgsmall.shape[0]*imgsmall.shape[1]>1000000:
         imgsmall = cv.resize(imgsmall,(0,0),fx=.5,fy=.5)
@@ -60,36 +60,35 @@ def getBlobs(img,step,show,a,b):
     imgLit = (imgHSV[:,:,2]*(1-imgSat/511)).astype(np.uint8)
     blobImgs = []
     hues = []
-    step = 30
     imgCon = np.copy(imgsmall)
     strel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (9, 9)) #Can adjust morph size
-    for minHue in [-2,-1]+[k for k in range(0,180,step)]:
+    for minHue in [-2,-1]+[k for k in range(0,180,params['step'])]:
             if minHue==-2:
                 imgLitM = cv.morphologyEx(255-imgLit, cv.MORPH_CLOSE, strel)
-                ret1,_ = cv.threshold(imgLitM,55,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
-                _,imgBWM = cv.threshold(imgLitM,ret1*1.29,255,cv.THRESH_BINARY)
+                ret1,_ = cv.threshold(imgLitM,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
+                _,imgBWM = cv.threshold(imgLitM,ret1*params['black'],255,cv.THRESH_BINARY)
             elif minHue==-1:
                 imgLitM = cv.morphologyEx(imgLit, cv.MORPH_CLOSE, strel)
-                ret1,_ = cv.threshold(imgLitM,170,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
-                _,imgBWM = cv.threshold(imgLitM,ret1*1.6,255,cv.THRESH_BINARY)
+                ret1,_ = cv.threshold(imgLitM,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
+                _,imgBWM = cv.threshold(imgLitM,ret1*params['white'],255,cv.THRESH_BINARY)
             else:
-                imgColor = imgSat*np.logical_and(imgHue>=minHue,imgHue<minHue+step)
+                imgColor = imgSat*np.logical_and(imgHue>=minHue,imgHue<minHue+params['step'])
                 imgM = cv.morphologyEx(imgColor, cv.MORPH_CLOSE, strel)
-                ret1,_ = cv.threshold(imgM,100,255,cv.THRESH_BINARY+cv.THRESH_OTSU) 
-                _,imgBWM = cv.threshold(imgM,ret1*a+b,255,cv.THRESH_BINARY)  
+                ret1,_ = cv.threshold(imgM,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU) 
+                _,imgBWM = cv.threshold(imgM,ret1*params['a']+params['b'],255,cv.THRESH_BINARY)  
             #contours0, hierarchy0 = cv.findContours(imgBW, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
             contours, hierarchy = cv.findContours(imgBWM, cv.RETR_CCOMP, cv.CHAIN_APPROX_NONE)
             for k in range(len(contours)):
-                if cv.contourArea(contours[k])>600 and hierarchy[0][k][3]<0 and 0.69 < getContourCirc(contours[k]) < 0.9: #Can adjust threshold
+                if cv.contourArea(contours[k])>600 and hierarchy[0][k][3]<0 and params['circ_low'] < getContourCirc(contours[k]) < params['circ_high']: #Can adjust threshold
                     cv.drawContours(imgCon, contours, k, (255,0,0), 2)
                     bbox = getBoundingBox(contours[k])
-                    blobImg = imgsmall[bbox[2]:bbox[3],bbox[0]:bbox[1]]
+                    blobImg = resizeBlob(imgsmall[bbox[2]:bbox[3],bbox[0]:bbox[1]])
                     blobHSV = cv.cvtColor(blobImg,cv.COLOR_BGR2HSV)
                     if minHue<0:
                         hues.append(minHue)
                     else:
                         hues.append(np.mean(blobHSV[:,:,0]))
-                    blobImgs.append(blobImg)
+                    blobImgs.append({'Image':blobImg,'Center':(bbox[3],int((bbox[0]+bbox[1])/2))})
     if show:
         cv.imshow('Image',imgCon)
     try:
@@ -97,26 +96,23 @@ def getBlobs(img,step,show,a,b):
     except ValueError:
         return []
     blobs = blobs[np.argsort(hues)]
-    return resizeBlobs(blobs)
+    return blobs
 
-def resizeBlobs(blobs):
-    blobsSq = []
-    for blob in blobs:
-        f = min(50/blob.shape[0],60/blob.shape[1])
-        blobRs = cv.resize(blob,(0,0),fx=f,fy=f)
-        pads = ((50-blobRs.shape[0])/2,(60-blobRs.shape[1])/2)
-        pad0 = (math.floor(pads[0]),math.ceil(pads[0]))
-        pad1 = (math.floor(pads[1]),math.ceil(pads[1]))
-        blobSq = np.pad(blobRs,(pad0,pad1,(0,0)),'edge')
-        blobsSq.append(blobSq)
-    return blobsSq
+def resizeBlob(blob):
+    f = min(60/blob.shape[0],50/blob.shape[1])
+    blobRs = cv.resize(blob,(0,0),fx=f,fy=f)
+    pads = ((60-blobRs.shape[0])/2,(50-blobRs.shape[1])/2)
+    pad0 = (math.floor(pads[0]),math.ceil(pads[0]))
+    pad1 = (math.floor(pads[1]),math.ceil(pads[1]))
+    blobSq = np.pad(blobRs,(pad0,pad1,(0,0)),'edge')
+    return blobSq
 
 def montage(blobs):
-    res = np.zeros((50,5,3)).astype(np.uint8)
+    res = np.zeros((60,5,3)).astype(np.uint8)
     for blob in blobs:
-        if blob.shape!=(50,60,3):
+        if blob['Image'].shape!=(60,50,3):
             return
-        res = np.concatenate((res,blob,np.zeros((50,5,3)).astype(np.uint8)),axis=1)
+        res = np.concatenate((res,blob['Image'],np.zeros((60,5,3)).astype(np.uint8)),axis=1)
     cv.imshow('Image',res)
 
 def testLinearOtsu():
@@ -135,11 +131,12 @@ def testLinearOtsu():
                 fail=True
             if not fail:
                 print(a/100,b)
-                
-#for k in range(20):
-#    img=cv.imread('C:\\Users\\joshm\\Documents\\bbMLg\\data1120a\\3d' + str(k) + '.png')
-#    blobs = getBlobs(img,30,False,0.50,76) #Finely tuned parameters
-#    print(str(k)+'\t'+'\t'.join([str(blob.shape[0])+' '+str(blob.shape[1]) for blob in blobs]))
+
+params = {'step':30,'a':0.50,'b':76,'black':1.29,'white':1.60,'circ_low':0.69,'circ_high':0.90}
+for k in range(0):
+    img=cv.imread('C:\\Users\\joshm\\Documents\\bbMLg\\data1120a\\3d' + str(k) + '.png')
+    blobs = getBlobs(img,params,False)
+    print(str(k)+'\t'+'\t'.join([str(blob['Center']) for blob in blobs]))
 
     
 #lines = hough(img,1000,100)
