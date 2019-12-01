@@ -1,6 +1,7 @@
 import cv2 as cv
 import numpy as np
 import math
+import os
 
 def hough(img,R,thresh):
 	gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
@@ -62,7 +63,7 @@ def getBlobs(img,params,show):
     hues = []
     imgCon = np.copy(imgsmall)
     strel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (9, 9)) #Can adjust morph size
-    for minHue in [-2,-1]+[k for k in range(0,180,params['step'])]:
+    for minHue in [-2]+[k for k in range(0,180,params['step'])]:
             if minHue==-2:
                 imgLitM = cv.morphologyEx(255-imgLit, cv.MORPH_CLOSE, strel)
                 ret1,_ = cv.threshold(imgLitM,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
@@ -114,6 +115,7 @@ def montage(blobs):
             return
         res = np.concatenate((res,blob['Image'],np.zeros((60,5,3)).astype(np.uint8)),axis=1)
     cv.imshow('Image',res)
+    cv.waitKey(0)
 
 def testLinearOtsu():
     for a in range(50,80,2):
@@ -133,10 +135,17 @@ def testLinearOtsu():
                 print(a/100,b)
 
 params = {'step':30,'a':0.50,'b':76,'black':1.29,'white':1.60,'circ_low':0.69,'circ_high':0.90}
-for k in range(0):
-    img=cv.imread('C:\\Users\\joshm\\Documents\\bbMLg\\data1120a\\3d' + str(k) + '.png')
+for k in range(2):
+    filename = ''
+    if os.name == 'nt':
+        'C:\\Users\\joshm\\Documents\\bbMLg\\data1120a\\3d' + str(k) + '.png'
+    else:
+        filename = './data1120b/1d' + str(k) + '.png'
+
+    img=cv.imread(filename)
     blobs = getBlobs(img,params,False)
+    montage(blobs)
+
     print(str(k)+'\t'+'\t'.join([str(blob['Center']) for blob in blobs]))
 
-    
 #lines = hough(img,1000,100)
