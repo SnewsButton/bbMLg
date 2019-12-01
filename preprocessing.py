@@ -79,7 +79,7 @@ def getBlobs(img,params,show):
             #contours0, hierarchy0 = cv.findContours(imgBW, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
             contours, hierarchy = cv.findContours(imgBWM, cv.RETR_CCOMP, cv.CHAIN_APPROX_NONE)
             for k in range(len(contours)):
-                if cv.contourArea(contours[k])>600 and hierarchy[0][k][3]<0 and params['circ_low'] < getContourCirc(contours[k]) < params['circ_high']: #Can adjust threshold
+                if 600<cv.contourArea(contours[k])<imgBWM.shape[0]*imgBWM.shape[1]/2 and hierarchy[0][k][3]<0 and params['circ_low'] < getContourCirc(contours[k]) < params['circ_high']: #Can adjust threshold
                     cv.drawContours(imgCon, contours, k, (255,0,0), 2)
                     bbox = getBoundingBox(contours[k])
                     blobImg = resizeBlob(imgsmall[bbox[2]:bbox[3],bbox[0]:bbox[1]])
