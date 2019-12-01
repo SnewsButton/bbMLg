@@ -135,17 +135,39 @@ def testLinearOtsu():
                 print(a/100,b)
 
 params = {'step':30,'a':0.50,'b':76,'black':1.29,'white':1.60,'circ_low':0.69,'circ_high':0.90}
-for k in range(2):
+for k in range(34, 36):
     filename = ''
     if os.name == 'nt':
         'C:\\Users\\joshm\\Documents\\bbMLg\\data1120a\\3d' + str(k) + '.png'
     else:
         filename = './data1120b/1d' + str(k) + '.png'
 
+    print(filename)
     img=cv.imread(filename)
     blobs = getBlobs(img,params,False)
     montage(blobs)
 
     print(str(k)+'\t'+'\t'.join([str(blob['Center']) for blob in blobs]))
+
+
+N = 4000
+folder = './data1120b/'
+alldata = np.array([])
+allblobs = np.array([])
+for D in range(1,4):
+    data = np.genfromtxt(folder + 'data' + str(D) + '.txt', delimiter=',')
+    names = [folder + str(D) + 'd' + str(k) + '.png' for k in range(N)]
+    print(names)
+    mat = np.array([getBlobs(cv.imread(name),params,False) for name in names])
+    mask = [mat[i].shape[0]==D for i in range(mat.shape[0])]
+    Nr = sum(mask)
+    dataf = data[mask,1:]
+    matf = mat[mask]
+    datar = np.reshape(dataf,(Nr*D,))
+    matr = np.reshape(matf,(Nr*D,))
+    alldata = np.concatenate((alldata,datar))
+    allblobs = np.concatenate((allblobs,matr))
+
+print(allblobs)
 
 #lines = hough(img,1000,100)
