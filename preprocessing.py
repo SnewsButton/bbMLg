@@ -48,7 +48,7 @@ def getContourCirc(contour):
     return 4*math.pi*A/(P*P)
 
 def getBoundingBox(contour):
-    top = int(min(contour[:,0,1])-(max(contour[:,0,1])-min(contour[:,0,1]))*0.2)
+    top = max(int(min(contour[:,0,1])-(max(contour[:,0,1])-min(contour[:,0,1]))*0.2),0)
     return (int(min(contour[:,0,0])),max(contour[:,0,0]),top,max(contour[:,0,1]))
 
 def getBlobs(img,params,show):
@@ -78,9 +78,10 @@ def getBlobs(img,params,show):
                 ret1,_ = cv.threshold(imgM,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU) 
                 _,imgBWM = cv.threshold(imgM,ret1*params['a']+params['b'],255,cv.THRESH_BINARY)  
             #contours0, hierarchy0 = cv.findContours(imgBW, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
-            contours, hierarchy = cv.findContours(imgBWM, cv.RETR_CCOMP, cv.CHAIN_APPROX_NONE)
+            contours, hierarchy = cv.findContours(imgBWM, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
             for k in range(len(contours)):
                 if 600<cv.contourArea(contours[k])<imgBWM.shape[0]*imgBWM.shape[1]/2 and hierarchy[0][k][3]<0 and params['circ_low'] < getContourCirc(contours[k]) < params['circ_high']: #Can adjust threshold
+                    #print(hierarchy[0][k])
                     cv.drawContours(imgCon, contours, k, (255,0,0), 2)
                     bbox = getBoundingBox(contours[k])
                     blobImg = resizeBlob(imgsmall[bbox[2]:bbox[3],bbox[0]:bbox[1]])
@@ -135,12 +136,12 @@ def testLinearOtsu():
                 print(a/100,b)
 
 params = {'step':30,'a':0.50,'b':76,'black':1.29,'white':1.60,'circ_low':0.69,'circ_high':0.90}
-for k in range(34, 36):
-    filename = ''
+for k in range(40):
+    filename = '1d' + str(k) + '.png'
     if os.name == 'nt':
-        'C:\\Users\\joshm\\Documents\\bbMLg\\data1120a\\3d' + str(k) + '.png'
+        filename = 'C:\\Users\\joshm\\Documents\\bbMLg\\bbMLG\\data1120b\\' + filename
     else:
-        filename = './data1120b/1d' + str(k) + '.png'
+        filename = './data1120b/' + filename
 
     print(filename)
     img=cv.imread(filename)
