@@ -3,23 +3,15 @@ import numpy as np
 import math
 import os
 
-def hough(img,R,thresh):
-	gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
-	edges = cv.Canny(gray,50,150,apertureSize = 3)
-
-	lines = cv.HoughLines(edges,1,np.pi/180,thresh)
-	imgLines = np.copy(img)
-	for k in range(lines.shape[0]):
-	    rho = lines[k][0][0]
-	    theta = lines[k][0][1]
-	    a = np.cos(theta)
-	    b = np.sin(theta)
-	    x0 = a*rho
-	    y0 = b*rho
-	    x2 = int(x0 - R*(-b))
-	    y2 = int(y0 - R*(a))
-	    imgLines = cv.line(imgLines,(x0,y0),(x2,y2),(0,0,255),2)
-	return lines
+def hough(img,step):
+    gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
+    edges = cv.Canny(gray,50,150,apertureSize = 3)
+    for thresh in range(step,300,step): 
+            lines = cv.HoughLines(edges,1,np.pi/180,thresh)
+            if lines is None:
+                return []
+            if len(lines)<=4:
+                return lines
 
 def drawContour(img,contours,k):
     imgCon = np.copy(img)
@@ -136,17 +128,41 @@ def testLinearOtsu():
                 print(a/100,b)
 
 params = {'step':30,'a':0.50,'b':76,'black':1.29,'white':1.60,'circ_low':0.69,'circ_high':0.90}
-for k in range(40):
-    filename = '1d' + str(k) + '.png'
-    if os.name == 'nt':
-        filename = 'C:\\Users\\joshm\\Documents\\bbMLg\\bbMLG\\data1120b\\' + filename
-    else:
-        filename = './data1120b/' + filename
 
-    img=cv.imread(filename)
-    blobs = getBlobs(img,params,False)
-    montage(blobs)
+def testImages(D,N):
+    for k in range(N):
+        filename = str(D) + 'd' + str(k) + '.png'
+        if os.name == 'nt':
+            filename = 'C:\\Users\\joshm\\Documents\\bbMLg\\bbMLG\\data1120b\\' + filename
+        else:
+            filename = './data1120b/' + filename
+        img=cv.imread(filename)
+        blobs = getBlobs(img,params,False)
+        montage(blobs)
+        print(str(k)+'\t'+'\t'.join([str(blob['Center']) for blob in blobs]))
 
-    print(str(k)+'\t'+'\t'.join([str(blob['Center']) for blob in blobs]))
-
-#lines = hough(img,1000,100)
+N = 40
+if os.name == 'nt':
+    folder = 'C:\\Users\\joshm\\Documents\\bbMLg\\bbMLG\\data1120b\\'
+else:
+    folder = './data1120b/'
+alldata = np.array([])
+allblobs = np.array([])
+alllines = np.array([])
+for D in range(1,4):
+	data = np.genfromtxt(folder + 'data' + str(D) + '.txt', delimiter=',')[:N]
+	names = [folder + str(D) + 'd' + str(k) + '.png' for k in range(N)]
+	imgs = [cv.imread(name) for name in names]
+	mat = np.array([getBlobs(img,params,False) for img in imgs])
+	lines = np.array([hough(img,10) for img in imgs])
+	mask = [mat[i].shape[0]==D for i in range(mat.shape[0])]
+	Nr = sum(mask)
+	dataf = data[mask,1:]
+	matf = mat[mask]
+	linesf = lines[mask]
+	datar = np.reshape(dataf,(Nr*D,))
+	matr = np.concatenate(matf)
+	linesr = np.reshape(np.stack((linesf,)*D, axis=-1),(Nr*D,))
+	alldata = np.concatenate((alldata,datar))
+	allblobs = np.concatenate((allblobs,matr))
+	alllines = np.concatenate((alllines,linesr))
