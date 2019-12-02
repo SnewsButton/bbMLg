@@ -9,7 +9,7 @@ def hough(img,step):
     for thresh in range(step,300,step): 
             lines = cv.HoughLines(edges,1,np.pi/180,thresh)
             if lines is None:
-                return []
+                return np.array([])
             if len(lines)<=4:
                 return lines
 
