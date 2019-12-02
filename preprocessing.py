@@ -141,28 +141,37 @@ def testImages(D,N):
         montage(blobs)
         print(str(k)+'\t'+'\t'.join([str(blob['Center']) for blob in blobs]))
 
-N = 40
-if os.name == 'nt':
-    folder = 'C:\\Users\\joshm\\Documents\\bbMLg\\bbMLG\\data1120b\\'
-else:
-    folder = './data1120b/'
-alldata = np.array([])
-allblobs = np.array([])
-alllines = np.array([])
-for D in range(1,4):
-	data = np.genfromtxt(folder + 'data' + str(D) + '.txt', delimiter=',')[:N]
-	names = [folder + str(D) + 'd' + str(k) + '.png' for k in range(N)]
-	imgs = [cv.imread(name) for name in names]
-	mat = np.array([getBlobs(img,params,False) for img in imgs])
-	lines = np.array([hough(img,10) for img in imgs])
-	mask = [mat[i].shape[0]==D for i in range(mat.shape[0])]
-	Nr = sum(mask)
-	dataf = data[mask,1:]
-	matf = mat[mask]
-	linesf = lines[mask]
-	datar = np.reshape(dataf,(Nr*D,))
-	matr = np.concatenate(matf)
-	linesr = np.reshape(np.stack((linesf,)*D, axis=-1),(Nr*D,))
-	alldata = np.concatenate((alldata,datar))
-	allblobs = np.concatenate((allblobs,matr))
-	alllines = np.concatenate((alllines,linesr))
+
+def process_all_images(N):
+    if os.name == 'nt':
+        folder = 'C:\\Users\\joshm\\Documents\\bbMLg\\bbMLG\\data1120b\\'
+    else:
+        folder = './data1120b/'
+
+    alldata = np.array([])
+    allblobs = np.array([])
+    alllines = np.array([])
+    for D in range(1,4):
+        print(D)
+        data = np.genfromtxt(folder + 'data' + str(D) + '.txt', delimiter=',')[:N]
+        names = [folder + str(D) + 'd' + str(k) + '.png' for k in range(N)]
+        imgs = [cv.imread(name) for name in names]
+        mat = np.array([getBlobs(img,params,False) for img in imgs])
+        lines = np.array([hough(img,10) for img in imgs])
+        mask = [mat[i].shape[0]==D for i in range(mat.shape[0])]
+        Nr = sum(mask)
+        dataf = data[mask,1:]
+        matf = mat[mask]
+        linesf = lines[mask]
+        datar = np.reshape(dataf,(Nr*D,))
+        matr = np.concatenate(matf)
+        linesr = np.reshape(np.stack((linesf,)*D, axis=-1),(Nr*D,))
+        alldata = np.concatenate((alldata,datar))
+        allblobs = np.concatenate((allblobs,matr))
+        alllines = np.concatenate((alllines,linesr))
+
+    return {
+        'alldata': alldata,
+        'allblobs': allblobs,
+        'alllines': alllines
+    }
