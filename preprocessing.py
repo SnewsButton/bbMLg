@@ -162,6 +162,7 @@ def process_all_images(N):
     allblobs = np.array([])
     alllines = np.array([])
     for D in range(1,4):
+        print('Processing:', D)
         data = np.genfromtxt(folder + 'data' + str(D) + '.txt', delimiter=',')[:N]
         names = [folder + str(D) + 'd' + str(k) + '.png' for k in range(N)]
         imgs = [cv.imread(name) for name in names]

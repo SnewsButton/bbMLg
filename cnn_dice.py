@@ -4,6 +4,7 @@ from preprocessing import process_all_images
 from keras.models import Model, Sequential
 from keras.layers import Input, Conv2D, MaxPooling2D
 from keras.layers import Activation, Dropout, Flatten, Dense, concatenate
+from keras.callbacks import ModelCheckpoint
 
 
 def create_train_and_test_data(N):
@@ -12,6 +13,7 @@ def create_train_and_test_data(N):
 	allblobs = all_info['allblobs']
 	alllines = all_info['alllines']
 	size = alldata.size
+	print('size:', size)
 
 	#labels
 	training_size = int(size * .8)
@@ -31,20 +33,8 @@ def create_train_and_test_data(N):
 	lines_split = np.split(alllines, [training_size])
 	lines_train, lines_test = [], []
 
-	for lines in lines_split[0]:
-		lines = lines.flatten()
-		while lines.size < 8:
-			lines = np.append(lines, [0])
-		lines_train.append(lines)
-	
-	for lines in lines_split[1]:
-		lines = lines.flatten()
-		while lines.size < 8:
-			lines = np.append(lines, [0])
-		lines_test.append(lines)
-
-	lines_train, lines_test = np.array(lines_train), np.array(lines_test)
-
+	lines_train = np.array([np.pad(lines.flatten(),(0,8-lines.flatten().shape[0]),'constant', constant_values=(-1,)) for lines in lines_split[0]])
+	lines_test = np.array([np.pad(lines.flatten(),(0,8-lines.flatten().shape[0]),'constant', constant_values=(-1,)) for lines in lines_split[1]])
 
 	blobs_center_train = np.array([blobs_data['Center'] for blobs_data in blobs_data_train])
 	blobs_center_test = np.array([blobs_data['Center'] for blobs_data in blobs_data_test])
@@ -95,23 +85,33 @@ def get_cnn_model():
 	
 	return model
 
-def train_cnn(model, train_and_test_data):
+def train_cnn(model, train_and_test_data, N):
 	print('Start training')
 	blobs_train, blobs_test = train_and_test_data['blobs_train'], train_and_test_data['blobs_test']
 	data_train, data_test = train_and_test_data['data_train'], train_and_test_data['data_test']
 
+	record_weights = ModelCheckpoint(filepath='./model_weights/weights_' + str(N) + '_{epoch:02d}-{val_loss:.2f}.hdf5',
+		monitor='val_loss',
+		verbose=0,
+		save_best_only=False,
+		save_weights_only=False,
+		mode='auto',
+		period=1)
+
 	model.fit(blobs_train, data_train,
 		epochs=50,
-		verbose=0,
-		validation_data=(blobs_test, data_test))
+		verbose=2,
+		validation_data=(blobs_test, data_test),
+		callbacks=[record_weights])
 
 	score = model.evaluate(blobs_test, data_test, verbose=0)
 	print(score)
 
-	model.save_weights('50_epochs.h5')
+	model.save_weights('./model_weights/' + str(N) + '_epochs.h5')
 	print('End training')
 
-
-# data = create_train_and_test_data(100)
-# model = get_cnn_model()
-# train_cnn(model, data)
+N = 4000
+print('N:', N)
+data = create_train_and_test_data(N)
+model = get_cnn_model()
+train_cnn(model, data, N)
