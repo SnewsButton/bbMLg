@@ -58,6 +58,7 @@ def create_train_and_test_data(N):
 
 
 def get_cnn_model():
+	# https://keras.io/getting-started/functional-api-guide/
 	# IMAGE
 	blob_image_input = Input(shape=(60, 50, 3), name='blob_image_input')
 
@@ -111,6 +112,6 @@ def train_cnn(model, train_and_test_data):
 	print('End training')
 
 
-data = create_train_and_test_data(100)
-model = get_cnn_model()
-train_cnn(model, data)
+# data = create_train_and_test_data(100)
+# model = get_cnn_model()
+# train_cnn(model, data)
