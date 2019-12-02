@@ -127,7 +127,15 @@ def testLinearOtsu():
             if not fail:
                 print(a/100,b)
 
-params = {'step':30,'a':0.50,'b':76,'black':1.29,'white':1.60,'circ_low':0.69,'circ_high':0.90}
+params = {
+    'step': 30,
+    'a': 0.50,
+    'b': 76,
+    'black': 1.29,
+    'white': 1.60,
+    'circ_low': 0.69,
+    'circ_high': 0.90
+}
 
 def testImages(D,N):
     for k in range(N):
@@ -143,6 +151,8 @@ def testImages(D,N):
 
 
 def process_all_images(N):
+    print('processing images has started')
+
     if os.name == 'nt':
         folder = 'C:\\Users\\joshm\\Documents\\bbMLg\\bbMLG\\data1120b\\'
     else:
@@ -152,7 +162,6 @@ def process_all_images(N):
     allblobs = np.array([])
     alllines = np.array([])
     for D in range(1,4):
-        print(D)
         data = np.genfromtxt(folder + 'data' + str(D) + '.txt', delimiter=',')[:N]
         names = [folder + str(D) + 'd' + str(k) + '.png' for k in range(N)]
         imgs = [cv.imread(name) for name in names]
@@ -169,6 +178,8 @@ def process_all_images(N):
         alldata = np.concatenate((alldata,datar))
         allblobs = np.concatenate((allblobs,matr))
         alllines = np.concatenate((alllines,linesr))
+
+    print('processing images has completed')
 
     return {
         'alldata': alldata,
