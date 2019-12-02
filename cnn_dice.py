@@ -7,13 +7,6 @@ from keras.layers import Activation, Dropout, Flatten, Dense, concatenate
 
 
 def create_train_and_test_data(N):
-	'''
-	{
-        'alldata': alldata,
-        'allblobs': allblobs,
-        'alllines': alllines
-    }
-	'''
 	all_info = process_all_images(N)
 	alldata = all_info['alldata']
 	allblobs = all_info['allblobs']
@@ -29,7 +22,7 @@ def create_train_and_test_data(N):
 	blobs_data_split = np.split(allblobs, [training_size])
 	blobs_data_train, blobs_data_test = blobs_data_split[0], blobs_data_split[1]
 
-	# cv.cvtColor reduces the dimension
+	# cv.cvtColor reduces the dimension making it unusable for Conv2D which requires 4D (3D, it adds another dimension)
 	# blobs_img_train = np.array([cv.cvtColor(blobs_data['Image'],cv.COLOR_BGR2GRAY) for blobs_data in blobs_data_train])
 	# blobs_img_test = np.array([cv.cvtColor(blobs_data['Image'],cv.COLOR_BGR2GRAY) for blobs_data in blobs_data_test])
 	blobs_img_train = np.array([blobs_data['Image'] for blobs_data in blobs_data_train])
@@ -73,7 +66,7 @@ def get_cnn_model():
 	conv2d_2 = Conv2D(64, (3, 3), padding='same', activation='relu')(maxpooling2d_1)
 	maxpooling2d_2 = MaxPooling2D((3, 3), strides=(1, 1), padding='same')(conv2d_2)
 	image_dense_5 = Dense(64, activation='relu')(maxpooling2d_2)
-	image_flatten = Flatten()(image_dense_5)
+	image_flatten = Flatten()(image_dense_5) # concatenate requires that all layers yield the same dimension
 
 	# LINE
 	line_input = Input(shape=(8,))
@@ -88,7 +81,6 @@ def get_cnn_model():
 	center_dense = Dense(64, activation='relu')(center_input)
 
 	# CONCATENATE
-
 	concatenated = concatenate([image_flatten, line_output_4, center_dense])
 
 	dense_6 = Dense(64, activation='relu')(concatenated)
@@ -101,10 +93,6 @@ def get_cnn_model():
 	model.compile(loss='binary_crossentropy',optimizer="adam", metrics=['accuracy'])
 	
 	return model
-
-def get_tuned_model(hyperparameter_values):
-	pass
-
 
 def train_cnn(model, train_and_test_data):
 	print('Start training')
@@ -124,15 +112,5 @@ def train_cnn(model, train_and_test_data):
 
 
 data = create_train_and_test_data(100)
-
 model = get_cnn_model()
 train_cnn(model, data)
-'''
-{
-	'data_train': data_train,
-	'data_test': data_test,
-	'blobs_train': blobs_train,
-	'blobs_test': blobs_test,
-}
-'''
-
