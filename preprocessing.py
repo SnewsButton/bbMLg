@@ -150,7 +150,19 @@ def testImages(D,N):
         print(str(k)+'\t'+'\t'.join([str(blob['Center']) for blob in blobs]))
 
 
+def get_processed_dict_filename(N):
+    return './processed_info/images_' + str(N) + '.npy'
+
 def process_all_images(N):
+    saved_file = get_processed_dict_filename(N)
+    try:
+        all_info = np.load(saved_file, allow_pickle=True)
+        print('using saved file')
+        return all_info.item()
+    except FileNotFoundError:
+        print('Saved file does not exist')
+
+
     print('processing images has started')
 
     if os.name == 'nt':
@@ -182,8 +194,13 @@ def process_all_images(N):
 
     print('processing images has completed')
 
-    return {
+    all_info = {
         'alldata': alldata,
         'allblobs': allblobs,
         'alllines': alllines
     }
+
+    print('Saving images to', saved_file)
+    np.save(saved_file, all_info)
+
+    return all_info

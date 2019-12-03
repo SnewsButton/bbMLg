@@ -71,7 +71,7 @@ def train_cnn(model, train_and_test_data, N):
 	model.save_weights('./model_weights/' + str(N) + '_epochs.h5')
 	print('End training')
 
-N = 4000
+N = 40
 print('N:', N)
 data = create_train_and_test_data(N)
 model = get_cnn_model()
