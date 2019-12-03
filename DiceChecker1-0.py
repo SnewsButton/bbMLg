@@ -3,6 +3,7 @@ from tkinter.ttk import *
 from tkinter import filedialog
 from tkinter import scrolledtext
 from PIL import ImageTk, Image
+from cnn_dice import predict_on_files
 import os
 
 window = Tk()
@@ -12,6 +13,8 @@ window.title("DiceChecker9000")
 rbVar = IntVar()
 inType1 = Radiobutton(window, text="Single Image", value=0, variable=rbVar)
 inType2 = Radiobutton(window, text="Multiple Images", value=1, variable=rbVar)
+
+MODEL_FILE = 'model_weights/weights_4000_17-12.08.hdf5'
 
 def inputChoice():
     if(rbVar.get()==0):
@@ -40,6 +43,7 @@ def getFiles():
     clearGrid()
     inFiles = filedialog.askopenfilenames(filetypes = (("image files",["*.png","*.jpg","*.jpeg"]),("all files","*.*")))
     print(type(inFiles))
+    print(inFiles)
     files = scrolledtext.ScrolledText(window)
     for line in inFiles:
         files.insert(INSERT,line+'\n')
@@ -48,12 +52,13 @@ def getFiles():
     calc.grid(column=0,row=4,sticky=N+W)
 
 def diceResult(file):
-    txt = {file:[2,10,16]}
+    txt = predict_on_files(MODEL_FILE, (file,))
+
     result = Label(window, text="Results:\n"+str(txt[file]).strip('[]'), font=("Trebuchet", 20))
     result.grid(column=2,row=0,rowspan=2,sticky=N+W)
 
 def diceResults(files):
-    txt = {"C:/Users/crash/Pictures/Congratulations2.PNG":[1,6], "C:/Users/crash/Pictures/driving.png":[13], "C:/Users/crash/Pictures/Congratulations.PNG":[20]}
+    txt = predict_on_files(MODEL_FILE, files)
     pTxt = scrolledtext.ScrolledText(window)
     pTxt.insert(INSERT,'Results:\n')
     for line in txt.items():
@@ -81,5 +86,4 @@ inType2.grid(column=0,row=1, sticky=W)
 btn.grid(column=0,row=2, sticky=W)
 
 
-#Code goes above this
 window.mainloop()

@@ -1,7 +1,7 @@
 import numpy as np
 import cv2 as cv
-from preprocessing import process_all_images
-from keras.models import Model, Sequential
+from preprocessing import process_all_images, process_all_selected_image
+from keras.models import Model, Sequential, load_model
 from keras.layers import Input, Conv2D, MaxPooling2D, Activation, Dropout, Flatten, Dense, concatenate
 from keras.callbacks import ModelCheckpoint
 from cnn_model import *
@@ -71,8 +71,57 @@ def train_cnn(model, train_and_test_data, N):
 	model.save_weights('./model_weights/' + str(N) + '_epochs.h5')
 	print('End training')
 
-N = 4000
-print('N:', N)
-data = create_train_and_test_data(N)
-model = get_cnn_model()
-train_cnn(model, data, N)
+def load_model_from_file(filename):
+	print('Loading model from', filename)
+	model = load_model(filename)
+	print('Finished loading model')
+	return model
+
+def predict_on_files(model_file, file_tuples):
+	model = load_model_from_file(model_file)
+
+	predict_for_tuple = {}
+	print(file_tuples)
+	for file in file_tuples:
+		all_info = process_all_selected_image(file)
+		allblobs, alllines = all_info['allblobs'], all_info['alllines']
+
+		blobs_img = np.array([blobs_data['Image'] for blobs_data in allblobs])
+		lines_data = np.array([np.pad(lines.flatten(),(0,8-lines.flatten().shape[0]),'constant', constant_values=(-1,)) for lines in alllines])
+		blobs_center = np.array([blobs_data['Center'] for blobs_data in allblobs])
+
+		input_data = [blobs_img, lines_data, blobs_center]
+		prediction = model.predict(input_data)
+		print(prediction)
+		print(prediction.shape[0])
+
+		face_values = extract_value_from_prediction(prediction)
+		print(face_values)
+
+		predict_for_tuple[file] = face_values
+	
+	return predict_for_tuple
+
+def extract_value_from_prediction(prediction):
+	values = []
+	shape = prediction.shape
+	for i_1 in range(shape[0]):
+		max_val, max_ind = 0, 0
+		for i_2 in range(shape[1]):
+			if prediction[i_1][i_2] > max_val:
+				max_val = prediction[i_1][i_2]
+				max_ind = i_2
+
+		values.append(max_ind)
+
+	return values
+
+# load model from file
+# predict_on_files('model_weights/weights_4000_17-12.08.hdf5', ('data1120b/3d3884.png','data1120b/1d0.png'))
+
+# Training model
+# N = 4000
+# print('N:', N)
+# data = create_train_and_test_data(N)
+# model = get_cnn_model()
+# train_cnn(model, data, N)

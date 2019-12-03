@@ -204,3 +204,21 @@ def process_all_images(N):
     np.save(saved_file, all_info)
 
     return all_info
+
+def process_all_selected_image(selected_file):
+    print('processing', selected_file,'has started')
+
+    allblobs, alllines = np.array([]), np.array([])
+
+    img = cv.imread(selected_file)
+    blobs = getBlobs(img,params,False)
+    lines = hough(img,10)
+
+    print('processing selected image has completed')
+
+    all_info = {
+        'allblobs': blobs,
+        'alllines': lines
+    }
+
+    return all_info
