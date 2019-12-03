@@ -6,7 +6,7 @@ import os
 def hough(img,step):
     gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
     edges = cv.Canny(gray,50,150,apertureSize = 3)
-    for thresh in range(step,300,step): 
+    for thresh in range(step,1000,step): 
             lines = cv.HoughLines(edges,1,np.pi/180,thresh)
             if lines is None:
                 return np.array([])

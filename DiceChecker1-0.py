@@ -3,7 +3,7 @@ from tkinter.ttk import *
 from tkinter import filedialog
 from tkinter import scrolledtext
 from PIL import ImageTk, Image
-from cnn_dice import predict_on_files
+from cnn_dice import DicePredicter
 import os
 
 window = Tk()
@@ -15,6 +15,7 @@ inType1 = Radiobutton(window, text="Single Image", value=0, variable=rbVar)
 inType2 = Radiobutton(window, text="Multiple Images", value=1, variable=rbVar)
 
 MODEL_FILE = 'model_weights/weights_4000_17-12.08.hdf5'
+predicter = DicePredicter(MODEL_FILE)
 
 def inputChoice():
     if(rbVar.get()==0):
@@ -30,7 +31,12 @@ def inputChoice():
 def getFile():
     clearGrid()
     inFile = filedialog.askopenfilename(filetypes = (("image files",["*.png","*.jpg","*.jpeg"]),("all files","*.*")))
-    img = ImageTk.PhotoImage(Image.open(inFile).resize((250, 250), Image.ANTIALIAS))
+    img = Image.open(inFile)
+    if img.getbbox()[3]>0:
+        ratio = img.getbbox()[2]/img.getbbox()[3]
+    else:
+        ratio = 1
+    img = ImageTk.PhotoImage(img.resize((int(250*ratio), 250), Image.ANTIALIAS))
     pLbl = Label(window, image=img)
     pLbl.image = img
     pLbl.grid(column=1,row=0,rowspan=4,sticky=W)
@@ -52,13 +58,13 @@ def getFiles():
     calc.grid(column=0,row=4,sticky=N+W)
 
 def diceResult(file):
-    txt = predict_on_files(MODEL_FILE, (file,))
+    txt = predicter.predict_on_files((file,))
 
     result = Label(window, text="Results:\n"+str(txt[file]).strip('[]'), font=("Trebuchet", 20))
     result.grid(column=2,row=0,rowspan=2,sticky=N+W)
 
 def diceResults(files):
-    txt = predict_on_files(MODEL_FILE, files)
+    txt = predicter.predict_on_files(files)
     pTxt = scrolledtext.ScrolledText(window)
     pTxt.insert(INSERT,'Results:\n')
     for line in txt.items():
