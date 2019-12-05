@@ -7,7 +7,7 @@ def hough(img,step):
     gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
     edges = cv.Canny(gray,50,150,apertureSize = 3)
     for thresh in range(step,1000,step): 
-            lines = cv.HoughLines(edges,1,np.pi/180,thresh)
+            lines = cv.HoughLines(edges,2,np.pi/90,thresh)
             if lines is None:
                 return np.array([])
             if len(lines)<=4:
@@ -15,8 +15,10 @@ def hough(img,step):
 
 def getLines(img):
     lines = hough(img,10)
-    linesflat = lines.flatten()
-    return np.pad(linesflat.flatten(),(0,8-linesflat.shape[0]),'constant', constant_values=(-1,))
+    trigs = np.array([[[np.sin(lines[k][0][1]),np.cos(lines[k][0][1]),np.tan(lines[k][0][1])]] for k in range(lines.shape[0])])
+    linestrigs = np.concatenate((lines,trigs),-1)
+    linesflat = linestrigs.flatten()
+    return np.pad(linesflat.flatten(),(0,20-linesflat.shape[0]),'constant', constant_values=(-1,))
 
 def drawContour(img,contours,k):
     imgCon = np.copy(img)
@@ -73,7 +75,8 @@ def getBlobs(img,params,show):
                 imgColor = imgSat*np.logical_and(imgHue>=minHue,imgHue<minHue+params['step'])
                 imgM = cv.morphologyEx(imgColor, cv.MORPH_CLOSE, strel)
                 ret1,_ = cv.threshold(imgM,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU) 
-                _,imgBWM = cv.threshold(imgM,ret1*params['a']+params['b'],255,cv.THRESH_BINARY)  
+                _,imgBWM = cv.threshold(imgM,ret1*params['a']+params['b'],255,cv.THRESH_BINARY)
+            imgBWM = cv.morphologyEx(imgBWM, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_ELLIPSE, (2, 2)))
             #contours0, hierarchy0 = cv.findContours(imgBW, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
             contours, hierarchy = cv.findContours(imgBWM, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
             for k in range(len(contours)):
@@ -81,13 +84,14 @@ def getBlobs(img,params,show):
                     #print(hierarchy[0][k])
                     cv.drawContours(imgCon, contours, k, (255,0,0), 2)
                     bbox = getBoundingBox(contours[k])
+                    f = min(60/(bbox[3]-bbox[2]),50/(bbox[1]-bbox[0]))
                     blobImg = resizeBlob(imgsmall[bbox[2]:bbox[3],bbox[0]:bbox[1]])
                     blobHSV = cv.cvtColor(blobImg,cv.COLOR_BGR2HSV)
                     if minHue<0:
                         hues.append(minHue)
                     else:
                         hues.append(np.mean(blobHSV[:,:,0]))
-                    blobImgs.append({'Image':blobImg,'Center':(bbox[3],int((bbox[0]+bbox[1])/2))})
+                    blobImgs.append({'Image':blobImg,'Center':(bbox[3],int((bbox[0]+bbox[1])/2),f)})
     if show:
         cv.imshow('Image',imgCon)
     try:
@@ -177,7 +181,7 @@ def process_all_images(N):
 
     alldata = np.array([])
     allblobs = np.array([])
-    alllines = np.array([])
+    alllines = np.array([]).reshape(0,20)
     for D in range(1,4):
         print('Processing:', D)
         data = np.genfromtxt(folder + 'data' + str(D) + '.txt', delimiter=',')[:N]

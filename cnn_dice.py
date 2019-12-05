@@ -1,8 +1,10 @@
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 import numpy as np
 import cv2 as cv
 from preprocessing import process_all_images, process_all_selected_image
 from keras.models import Model, Sequential, load_model
-from keras.layers import Input, Conv2D, MaxPooling2D, Activation, Dropout, Flatten, Dense, concatenate
+from keras.layers import Input, Conv2D, MaxPooling2D, Activation, Dropout, Flatten, Dense, Concatenate
 from keras.callbacks import ModelCheckpoint
 from cnn_model import *
 
@@ -20,7 +22,7 @@ def create_train_and_test_data(N):
 	data_train, data_test = data_split[0], data_split[1]
 
 	#features
-	blobs_data_split = np.split(allblobs, [training_size])
+	blobs_data_split = np.split(allblobs, [training_size]   )
 	blobs_data_train, blobs_data_test = blobs_data_split[0], blobs_data_split[1]
 
 	# cv.cvtColor reduces the dimension making it unusable for Conv2D which requires 4D (3D, it adds another dimension)
@@ -60,7 +62,7 @@ def train_cnn(model, train_and_test_data, N):
 		period=1)
 
 	model.fit(blobs_train, data_train,
-		epochs=50,
+		epochs=25,
 		verbose=2,
 		validation_data=(blobs_test, data_test),
 		callbacks=[record_weights])
@@ -123,8 +125,9 @@ class DicePredicter():
 # predict_on_files('model_weights/weights_4000_17-12.08.hdf5', ('data1120b/3d3884.png','data1120b/1d0.png'))
 
 # Training model
-# N = 4000
-# print('N:', N)
-# data = create_train_and_test_data(N)
-# model = get_cnn_model()
-# train_cnn(model, data, N)
+N = 4000
+print('N:', N)
+data = create_train_and_test_data(N)
+model = get_rnn_model()
+model.summary()
+train_cnn(model, data, N)
