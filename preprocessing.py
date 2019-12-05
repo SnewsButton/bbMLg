@@ -13,6 +13,11 @@ def hough(img,step):
             if len(lines)<=4:
                 return lines
 
+def getLines(img):
+    lines = hough(img,10)
+    linesflat = lines.flatten()
+    return np.pad(linesflat.flatten(),(0,8-linesflat.shape[0]),'constant', constant_values=(-1,))
+
 def drawContour(img,contours,k):
     imgCon = np.copy(img)
     cv.drawContours(imgCon, contours, k, (0,255,255))
@@ -179,7 +184,7 @@ def process_all_images(N):
         names = [folder + str(D) + 'd' + str(k) + '.png' for k in range(N)]
         imgs = [cv.imread(name) for name in names]
         mat = np.array([getBlobs(img,params,False) for img in imgs])
-        lines = np.array([hough(img,10) for img in imgs])
+        lines = np.array([getLines(img) for img in imgs])
         mask = [mat[i].shape[0]==D for i in range(mat.shape[0])]
         Nr = sum(mask)
         dataf = data[mask,1:]
@@ -187,7 +192,7 @@ def process_all_images(N):
         linesf = lines[mask]
         datar = np.reshape(dataf,(Nr*D,))
         matr = np.concatenate(matf)
-        linesr = np.reshape(np.stack((linesf,)*D, axis=-1),(Nr*D,))
+        linesr = np.concatenate(np.array([np.stack((linesfi,)*D) for linesfi in linesf]))
         alldata = np.concatenate((alldata,datar))
         allblobs = np.concatenate((allblobs,matr))
         alllines = np.concatenate((alllines,linesr))
@@ -212,7 +217,7 @@ def process_all_selected_image(selected_file):
 
     img = cv.imread(selected_file)
     blobs = getBlobs(img,params,False)
-    lines = hough(img,10)
+    lines = getLines(img)
 
     print('processing selected image has completed')
 

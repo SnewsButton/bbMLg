@@ -32,8 +32,8 @@ def create_train_and_test_data(N):
 	lines_split = np.split(alllines, [training_size])
 	lines_train, lines_test = [], []
 
-	lines_train = np.array([np.pad(lines.flatten(),(0,8-lines.flatten().shape[0]),'constant', constant_values=(-1,)) for lines in lines_split[0]])
-	lines_test = np.array([np.pad(lines.flatten(),(0,8-lines.flatten().shape[0]),'constant', constant_values=(-1,)) for lines in lines_split[1]])
+	lines_train = np.array(lines_split[0])
+	lines_test = np.array(lines_split[1])
 
 	blobs_center_train = np.array([blobs_data['Center'] for blobs_data in blobs_data_train])
 	blobs_center_test = np.array([blobs_data['Center'] for blobs_data in blobs_data_test])
@@ -90,8 +90,7 @@ class DicePredicter():
                         allblobs, alllines = all_info['allblobs'], all_info['alllines']
 
                         blobs_img = np.array([blobs_data['Image'] for blobs_data in allblobs])
-                        lines_data = np.array(np.pad(alllines.flatten(),(0,8-alllines.flatten().shape[0]),'constant', constant_values=(-1,)))
-                        lines_data = np.stack((lines_data,)*blobs_img.shape[0])
+                        lines_data = np.stack((alllines,)*blobs_img.shape[0])
                         blobs_center = np.array([blobs_data['Center'] for blobs_data in allblobs])
 
                         input_data = [blobs_img, lines_data, blobs_center]

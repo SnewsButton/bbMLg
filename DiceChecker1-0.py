@@ -60,7 +60,7 @@ def getFiles():
 def diceResult(file):
     txt = predicter.predict_on_files((file,))
 
-    result = Label(window, text="Results:\n"+str(txt[file]).strip('[]'), font=("Trebuchet", 20))
+    result = Label(window, text="Results:\n"+str(txt[file][:3]).strip('[]'), font=("Trebuchet", 20))
     result.grid(column=2,row=0,rowspan=2,sticky=N+W)
 
 def diceResults(files):
