@@ -68,7 +68,7 @@ def diceResults(files):
     pTxt = scrolledtext.ScrolledText(window)
     pTxt.insert(INSERT,'Results:\n')
     for line in txt.items():
-        pTxt.insert(INSERT,os.path.basename(line[0])+': '+str(line[1])+'\n')
+        pTxt.insert(INSERT,os.path.basename(line[0])+': '+str(line[1][:3])+'\n')
     pTxt.grid(column=2,row=0, rowspan=4)
     down = Button(window, text="Download", command=lambda: download(txt))
     down.grid(column=2,row=4,sticky=N+W)
