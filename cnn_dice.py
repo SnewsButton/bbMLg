@@ -1,16 +1,31 @@
 import numpy as np
 import cv2 as cv
 from preprocessing import process_all_images, process_all_selected_image
-from keras.models import Model, Sequential, load_model
-from keras.layers import Input, Conv2D, MaxPooling2D, Activation, Dropout, Flatten, Dense, concatenate
-from keras.callbacks import ModelCheckpoint
 from cnn_model import *
+from keras.models import load_model
+
+def get_confusion_matrix(filename,N):
+	model = load_model(filename)
+	all_info = process_all_images(N)
+	alldata = all_info['alldata']
+	allblobs = all_info['allblobs']
+	alllines = all_info['alllines']
+	if alllines.shape[1]==20:
+		alllines=alllines[:,[0,1,5,6,10,11,15,16]]
+	blobs_img = np.array([blobs_data['Image'] for blobs_data in allblobs])
+	blobs_center = np.array([blobs_data['Center'] for blobs_data in allblobs])[:,:2]
+	input_data = [blobs_img, lines_data, blobs_center]
+	prediction = self.model.predict(input_data)	
+	cmtx = confusion_matrix(alldata,np.argmax(prediction,axis=1))
+	return cmtx
 
 def create_train_and_test_data(N):
 	all_info = process_all_images(N)
 	alldata = all_info['alldata']
 	allblobs = all_info['allblobs']
 	alllines = all_info['alllines']
+	if alllines.shape[1]==20:
+		alllines=alllines[:,[0,1,5,6,10,11,15,16]]
 	size = alldata.size
 	print('size:', size)
 
@@ -98,26 +113,13 @@ class DicePredicter():
                         #print(prediction)
                         print(prediction.shape[0])
 
-                        face_values = self.extract_value_from_prediction(prediction)
+                        face_values = np.argmax(prediction,axis=1)
                         print(face_values)
 
                         predict_for_tuple[file] = face_values
                 
                 return predict_for_tuple
 
-        def extract_value_from_prediction(self,prediction):
-                values = []
-                shape = prediction.shape
-                for i_1 in range(shape[0]):
-                        max_val, max_ind = 0, 0
-                        for i_2 in range(shape[1]):
-                                if prediction[i_1][i_2] > max_val:
-                                        max_val = prediction[i_1][i_2]
-                                        max_ind = i_2
-
-                        values.append(max_ind)
-
-                return values
 
 # load model from file
 # predict_on_files('model_weights/weights_4000_17-12.08.hdf5', ('data1120b/3d3884.png','data1120b/1d0.png'))
